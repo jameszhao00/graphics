@@ -61,7 +61,7 @@ void convert_mesh(const aiMesh *mesh, Geometry::Builder geometry_output) {
     << mesh->mNumVertices
     << " vertices and "
     << mesh->mNumFaces
-    << " triangled.";
+    << " triangles.";
 
     auto vertices_output = geometry_output.initVertices(mesh->mNumVertices);
     convert_vertices(mesh, vertices_output);
@@ -103,6 +103,7 @@ void convert_scene(std::string input_path, std::string output_path) {
     auto materials_output = mesh_group.initMaterials(scene->mNumMaterials);
 
     convert_materials(scene, materials_output);
+    LOG(INFO) << "Found " << scene->mNumMeshes << " mesh(es)";
     for (auto mesh_index = 0; mesh_index < scene->mNumMeshes; mesh_index++) {
         LOG(INFO) << "Found mesh with index " << mesh_index;
         auto mesh_output = meshes_output[mesh_index];
