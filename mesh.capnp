@@ -19,19 +19,20 @@ struct Geometry {
 }
 struct Material {
     albedo @0 : Color;
+    diffuse @1 : Data;
 }
 struct Mesh {
     geometry @0 : Geometry;
     materialIndex @1 : Int32;
 }
-// unused
+# unused
 struct MeshInstance {
     position @0 : Vector3;
     meshIndex @1 : Int32;
 }
-// end unused
+# end unused
 struct MeshGroup {
     meshes @0 : List(Mesh);
-    //meshInstances @1 : List(MeshInstance);
-    materials @2 : List(Material);
+    #meshInstances @1 : List(MeshInstance);
+    materials @1 : List(Material);
 }

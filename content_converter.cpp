@@ -16,10 +16,13 @@
 #include <capnp/message.h>
 #include <capnp/serialize-packed.h>
 #include <sys/fcntl.h>
+#include <libgen.h>
 
-void foo() {
+#define STB_IMAGE_IMPLEMENTATION
 
-}
+#include "stb_image.h"
+
+using namespace std;
 
 void to_color(aiColor3D color, Color::Builder color_output) {
     color_output.setR(color.r);
@@ -70,20 +73,39 @@ void convert_mesh(const aiMesh *mesh, Geometry::Builder geometry_output) {
     convert_indices(mesh, indices_output);
 }
 
-void convert_material(const aiMaterial *material, Material::Builder material_output) {
+void convert_material(const aiMaterial *material, string input_directory, Material::Builder material_output) {
     aiColor3D albedo;
     if (material->Get(AI_MATKEY_COLOR_DIFFUSE, albedo) == AI_SUCCESS) {
         LOG(INFO) << "Material has albedo.";
         to_color(albedo, material_output.initAlbedo());
     }
+    aiString diffuse_texture_path;
+    if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuse_texture_path) == AI_SUCCESS) {
+
+        auto texture_path = input_directory + diffuse_texture_path.C_Str();
+
+        //Unix-ify windows paths (\)
+        std::replace(texture_path.begin(), texture_path.end(), '\\', '/');
+        LOG(INFO) << "Material has a diffuse texture at " << texture_path;
+
+        int x, y, bits_per_pixel;
+        unsigned char *data = stbi_load(texture_path.c_str(), &x, &y, &bits_per_pixel, 0);
+        CHECK(data != nullptr) << "Image loading failed: " << stbi_failure_reason();
+
+        auto size_in_bytes = x * y * bits_per_pixel;
+        auto diffuse = material_output.initDiffuse(size_in_bytes);
+        memcpy(&diffuse[0], data, size_in_bytes);
+        stbi_image_free(data);
+        LOG(INFO) << "Finished loading texture. Total size in bytes: " << size_in_bytes;
+    }
 }
 
-void convert_materials(const aiScene *scene, capnp::List<Material>::Builder &materials_output) {
+void convert_materials(const aiScene *scene, string input_directory, capnp::List<Material>::Builder &materials_output) {
     for (auto material_index = 0; material_index < scene->mNumMaterials; material_index++) {
         LOG(INFO) << "Importing material " << material_index;
         auto material_output = materials_output[material_index];
         aiMaterial *material = scene->mMaterials[material_index];
-        convert_material(material, material_output);
+        convert_material(material, input_directory, material_output);
     }
 }
 
@@ -101,8 +123,9 @@ void convert_scene(std::string input_path, std::string output_path) {
 
     auto meshes_output = mesh_group.initMeshes(scene->mNumMeshes);
     auto materials_output = mesh_group.initMaterials(scene->mNumMaterials);
-
-    convert_materials(scene, materials_output);
+    std::string input_path_copy = input_path;
+    auto input_directory = std::string(dirname(&input_path_copy[0])) + "/";
+    convert_materials(scene, input_directory, materials_output);
     LOG(INFO) << "Found " << scene->mNumMeshes << " mesh(es)";
     for (auto mesh_index = 0; mesh_index < scene->mNumMeshes; mesh_index++) {
         LOG(INFO) << "Found mesh with index " << mesh_index;
