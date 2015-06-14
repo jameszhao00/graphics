@@ -13,6 +13,8 @@
 #include <capnp/serialize-packed.h>
 #include <sys/fcntl.h>
 
+#include "gtest/gtest.h"
+
 using namespace std;
 
 void to_color(aiColor3D color, Color::Builder color_output) {
@@ -106,10 +108,11 @@ int main(int argc, char **argv) {
     FLAGS_logtostderr = true;
     const char *path = "./test_mesh2.meshdata.testoutput";
     LOG(INFO) << "Loading data from " << path;
-    convert_scene("./cube_single_uv.fbx", path);
+    convert_scene("./test-data.fbx", path);
     int read_fd = open(path, O_RDONLY);
     ::capnp::PackedFdMessageReader reader(read_fd);
     auto root = reader.getRoot<MeshGroup>();
     auto mesh_size = root.getMeshes().size();
     return 0;
 }
+
