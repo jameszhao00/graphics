@@ -16,9 +16,11 @@
 #include <capnp/message.h>
 #include <capnp/serialize-packed.h>
 #include <sys/fcntl.h>
+
 void foo() {
 
 }
+
 void to_color(aiColor3D color, Color::Builder color_output) {
     color_output.setR(color.r);
     color_output.setG(color.g);
@@ -54,6 +56,13 @@ void convert_indices(const aiMesh *mesh, capnp::List<int32_t>::Builder &indices_
 }
 
 void convert_mesh(const aiMesh *mesh, Geometry::Builder geometry_output) {
+    LOG(INFO)
+    << "Converting mesh with "
+    << mesh->mNumVertices
+    << " vertices and "
+    << mesh->mNumFaces
+    << " triangled.";
+
     auto vertices_output = geometry_output.initVertices(mesh->mNumVertices);
     convert_vertices(mesh, vertices_output);
     CHECK_EQ(mesh->mPrimitiveTypes, aiPrimitiveType_TRIANGLE);
@@ -64,12 +73,14 @@ void convert_mesh(const aiMesh *mesh, Geometry::Builder geometry_output) {
 void convert_material(const aiMaterial *material, Material::Builder material_output) {
     aiColor3D albedo;
     if (material->Get(AI_MATKEY_COLOR_DIFFUSE, albedo) == AI_SUCCESS) {
+        LOG(INFO) << "Material has albedo.";
         to_color(albedo, material_output.initAlbedo());
     }
 }
 
 void convert_materials(const aiScene *scene, capnp::List<Material>::Builder &materials_output) {
     for (auto material_index = 0; material_index < scene->mNumMaterials; material_index++) {
+        LOG(INFO) << "Importing material " << material_index;
         auto material_output = materials_output[material_index];
         aiMaterial *material = scene->mMaterials[material_index];
         convert_material(material, material_output);
@@ -93,6 +104,7 @@ void convert_scene(std::string input_path, std::string output_path) {
 
     convert_materials(scene, materials_output);
     for (auto mesh_index = 0; mesh_index < scene->mNumMeshes; mesh_index++) {
+        LOG(INFO) << "Found mesh with index " << mesh_index;
         auto mesh_output = meshes_output[mesh_index];
         auto geometry_output = mesh_output.initGeometry();
         auto *mesh = scene->mMeshes[mesh_index];
