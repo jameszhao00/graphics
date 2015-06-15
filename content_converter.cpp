@@ -81,7 +81,6 @@ void convert_material(const aiMaterial *material, string input_directory, Materi
     }
     aiString diffuse_texture_path;
     if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuse_texture_path) == AI_SUCCESS) {
-
         auto texture_path = input_directory + diffuse_texture_path.C_Str();
 
         //Unix-ify windows paths (\)
@@ -93,8 +92,12 @@ void convert_material(const aiMaterial *material, string input_directory, Materi
         CHECK(data != nullptr) << "Image loading failed: " << stbi_failure_reason();
 
         auto size_in_bytes = x * y * bits_per_pixel;
-        auto diffuse = material_output.initDiffuse(size_in_bytes);
-        memcpy(&diffuse[0], data, size_in_bytes);
+        auto diffuse_output = material_output.initDiffuse();
+        memcpy(&diffuse_output.initData(size_in_bytes)[0], data, size_in_bytes);
+        diffuse_output.setBpp(8);
+        diffuse_output.setWidth(x);
+        diffuse_output.setHeight(y);
+        diffuse_output.initDebugInfo().setPath(texture_path);
         stbi_image_free(data);
         LOG(INFO) << "Finished loading texture. Total size in bytes: " << size_in_bytes;
     }

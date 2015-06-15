@@ -11,9 +11,6 @@
 #include <capnp/message.h>
 #include <capnp/serialize-packed.h>
 
-TEST(ContentImporterTest, ImportCrytekSponza) {
-    convert_scene("test/testdata/crytek-sponza/sponza.obj", "crytek-sponza.meshoutput.testoutput");
-}
 TEST(ContentImporterTest, ImportTextureTest) {
     convert_scene("test/testdata/head/head.obj", "head.meshoutput.testoutput");
     int fd = open("head.meshoutput.testoutput", O_RDONLY);
@@ -22,7 +19,12 @@ TEST(ContentImporterTest, ImportTextureTest) {
 
     ASSERT_EQ(2, mesh_group.getMaterials().size());
     ASSERT_TRUE(mesh_group.getMaterials()[1].hasDiffuse());
-    ASSERT_EQ(50331648, mesh_group.getMaterials()[1].getDiffuse().size());
+    auto diffuse = mesh_group.getMaterials()[1].getDiffuse();
+    ASSERT_EQ(50331648, diffuse.getData().size());
+    ASSERT_EQ("test/testdata/head/lambertian.jpg", (std::string)diffuse.getDebugInfo().getPath());
+    ASSERT_EQ(4096, diffuse.getWidth());
+    ASSERT_EQ(4096, diffuse.getHeight());
+    ASSERT_EQ(8, diffuse.getBpp());
 }
 
 TEST(ContentImporterTest, ImportGeometryTest) {
